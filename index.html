@@ -39,8 +39,8 @@
       <section class="route" aria-label="План уроков на выбранный день" id="route"></section>
       <section class="extras"><div class="mini">СЕРИЯ САМОСТОЯТЕЛЬНОСТИ<b id="streak-line"></b></div><div class="mini">ДОСТИЖЕНИЕ РЯДОМ<b id="achievement-line"></b></div><div class="mini">ЗАВТРА ПЕРВЫМ<b id="next-point"></b></div></section>
       <section class="companions" aria-label="Помощники агента">
-        <article class="companion"><img src="public/companions/motya.png" alt="Кот Мотя"><span class="micro">Помощник рюкзака</span><b>Кот Мотя</b><p>Сканирует рюкзак дома и подсказывает, какие вещи ещё не отмечены.</p><div class="companion-actions"><button class="ghost" data-helper="motya" type="button">СКАН РЮКЗАКА</button><span class="helper-status" id="motya-status"></span></div></article>
-        <article class="companion"><img src="public/companions/grey.png" alt="Собака Грей"><span class="micro">Помощник домашки</span><b>Грей</b><p>Пробегает по заданиям, находит незакрытую домашку и помогает закончить подготовку.</p><div class="companion-actions"><button class="ghost" data-helper="grey" type="button">ПРОВЕРИТЬ ДОМАШКУ</button><span class="helper-status" id="grey-status"></span></div></article>
+        <article class="companion"><img src="public/companions/motya.webp" alt="Кот Мотя"><span class="micro">Помощник рюкзака</span><b>Кот Мотя</b><p>Сканирует рюкзак дома и подсказывает, какие вещи ещё не отмечены.</p><div class="companion-actions"><button class="ghost" data-helper="motya" type="button">СКАН РЮКЗАКА</button><span class="helper-status" id="motya-status"></span></div></article>
+        <article class="companion"><img src="public/companions/grey.webp" alt="Собака Грей"><span class="micro">Помощник домашки</span><b>Грей</b><p>Пробегает по заданиям, находит незакрытую домашку и помогает закончить подготовку.</p><div class="companion-actions"><button class="ghost" data-helper="grey" type="button">ПРОВЕРИТЬ ДОМАШКУ</button><span class="helper-status" id="grey-status"></span></div></article>
       </section>
       <section class="workspace">
         <div class="control">
@@ -75,14 +75,19 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </div>
   <script>
-    const days=[
-      {id:'tue',label:'ВТ',full:'вторник',date:'2026-09-01'},
-      {id:'wed',label:'СР',full:'среда',date:'2026-09-02'},
-      {id:'thu',label:'ЧТ',full:'четверг',date:'2026-09-03'},
-      {id:'fri',label:'ПТ',full:'пятница',date:'2026-09-04'},
-      {id:'mon',label:'ПН',full:'понедельник',date:'2026-09-07'}
-    ];
     const months=['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    const weekMeta=[
+      {id:'sun',label:'ВС',full:'воскресенье'},
+      {id:'mon',label:'ПН',full:'понедельник'},
+      {id:'tue',label:'ВТ',full:'вторник'},
+      {id:'wed',label:'СР',full:'среда'},
+      {id:'thu',label:'ЧТ',full:'четверг'},
+      {id:'fri',label:'ПТ',full:'пятница'},
+      {id:'sat',label:'СБ',full:'суббота'}
+    ];
+    const weatherInfo={date:'2026-08-28',place:'Жулебино, Москва',summary:'+18…+20° · переменная облачность',details:'возможен короткий дождь · северный ветер 2–7 м/с · 756 мм'};
+    const todayIso=getMoscowTodayIso();
+    const days=buildSchoolDays(todayIso,5);
     const subjects={
       'Математика':['Учебник математики','Тетрадь в клетку','Линейка'],
       'Русский':['Учебник русского','Рабочая тетрадь','Пенал'],
@@ -97,15 +102,24 @@
     };
     const defaults={profile:{name:'Макс',nick:'MAX',avatar:'MX',theme:'aurora'},xp:740,started:{},streak:4,packed:{},packRewarded:{},helperUsed:{},missions:{},homework:{},homeworkRewarded:{},selectedDay:'tue',schedule:{mon:[['08:30','Математика','312'],['09:25','Русский','207'],['10:20','История','315'],['11:15','Английский','214'],['12:10','Физкультура','Зал'],['13:05','Биология','104']],tue:[['08:30','Русский','207'],['09:25','Математика','312'],['10:20','ИЗО','118'],['11:15','География','301']],wed:[['08:30','Английский','214'],['09:25','Биология','104'],['10:20','Математика','312'],['11:15','Технология','006']],thu:[['08:30','История','315'],['09:25','Русский','207'],['10:20','Музыка','122'],['11:15','Физкультура','Зал']],fri:[['08:30','Математика','312'],['09:25','География','301'],['10:20','Английский','214'],['11:15','Биология','104']]}};
     const state=load();
+    if(!days.some(day=>day.id===state.selectedDay)) state.selectedDay=days[0].id;
     const $=id=>document.getElementById(id);
     const toast=$('toast');
     function load(){try{return merge(structuredClone(defaults),JSON.parse(localStorage.getItem('hq-game-state')||'{}'))}catch{return structuredClone(defaults)}}
     function merge(base,next){for(const key in next){base[key]=next[key]&&typeof next[key]==='object'&&!Array.isArray(next[key])?merge(base[key]||{},next[key]):next[key]}return base}
     function save(){localStorage.setItem('hq-game-state',JSON.stringify(state))}
     function say(message){toast.textContent=message;toast.classList.add('show');clearTimeout(say.timer);say.timer=setTimeout(()=>toast.classList.remove('show'),2600)}
-    function todayLessons(){return state.schedule[state.selectedDay]||[]}
+    function todayLessons(){return state.schedule[selectedDayInfo().weekId]||[]}
     function selectedDayInfo(){return days.find(day=>day.id===state.selectedDay)||days[0]}
-    function formatDate(iso){const date=new Date(iso+'T12:00:00Z');return date.getUTCDate()+' '+months[date.getUTCMonth()]}
+    function parseIso(iso){const [year,month,day]=iso.split('-').map(Number);return new Date(Date.UTC(year,month-1,day,12))}
+    function formatDate(iso){const date=parseIso(iso);return date.getUTCDate()+' '+months[date.getUTCMonth()]}
+    function shortDate(iso){const date=parseIso(iso);return String(date.getUTCDate()).padStart(2,'0')+'.'+String(date.getUTCMonth()+1).padStart(2,'0')}
+    function getMoscowTodayIso(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
+    function moscowTime(){return new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',hour:'2-digit',minute:'2-digit'}).format(new Date())}
+    function addDays(iso,amount){const date=parseIso(iso);date.setUTCDate(date.getUTCDate()+amount);return date.toISOString().slice(0,10)}
+    function maxIso(a,b){return a>b?a:b}
+    function schoolYearStart(iso){const year=Number(iso.slice(0,4));const month=Number(iso.slice(5,7));return (month>=6?year:year-1)+'-09-01'}
+    function buildSchoolDays(fromIso,count){let cursor=maxIso(fromIso,schoolYearStart(fromIso));const result=[];while(result.length<count){const date=parseIso(cursor);const weekday=date.getUTCDay();if(weekday>0&&weekday<6){const meta=weekMeta[weekday];result.push({id:cursor,weekId:meta.id,label:meta.label,full:meta.full,date:cursor})}cursor=addDays(cursor,1)}return result}
     function dayStorageKey(){return selectedDayInfo().date}
     function gear(){return [...new Set(['Пропуск','Пенал','Дневник','Папка для тетрадей',...todayLessons().flatMap(x=>subjects[x[1]]||['Тетрадь'])])]}
     function level(){return Math.floor(state.xp/1000)+1}
@@ -121,16 +135,17 @@
     function award(amount,message){state.xp+=amount;save();render();say(message)}
     function render(){
       document.body.className='theme-'+state.profile.theme;$('agent-label').textContent='Агент '+state.profile.nick;$('top-status').textContent='Уровень '+level()+' · серия '+state.streak+' дня';$('portrait').textContent=state.profile.avatar||'MX';$('agent-level').textContent=level();$('xp').textContent=state.xp%1000;$('xp-next').textContent=1000;$('xp-progress').style.width=(state.xp%1000)/10+'%';
-      const day=selectedDayInfo();$('brief-date').textContent='Домашний брифинг · '+day.full+', '+formatDate(day.date)+' · подготовка к школе';$('hero-title').innerHTML='Штаб дома.<br>Завтра под контролем.';$('brief-text').innerHTML='План: '+todayLessons().length+' уроков, '+gear().length+' вещей в рюкзаке<br>и '+homeworkItems().filter(item=>!item.done).length+' незакрытых заданий.';
-      const sport=todayLessons().some(l=>l[1]==='Физкультура');$('condition').textContent=sport?'ОСОБОЕ УСЛОВИЕ: положить форму и кроссовки':'ОСОБОЕ УСЛОВИЕ: телефон остаётся вне школьного плана';$('weather-line').textContent='Вечерняя подготовка · телефон в школе не нужен';$('countdown').textContent='20:30';
+      const day=selectedDayInfo();$('brief-date').textContent='Домашний брифинг · '+day.full+', '+formatDate(day.date)+' · сегодня '+formatDate(todayIso)+' по Москве';$('hero-title').innerHTML='Штаб дома.<br>Завтра под контролем.';$('brief-text').innerHTML='План: '+todayLessons().length+' уроков, '+gear().length+' вещей в рюкзаке<br>и '+homeworkItems().filter(item=>!item.done).length+' незакрытых заданий.';
+      const sport=todayLessons().some(l=>l[1]==='Физкультура');$('condition').textContent=sport?'ОСОБОЕ УСЛОВИЕ: положить форму и кроссовки':'ОСОБОЕ УСЛОВИЕ: телефон остаётся вне школьного плана';$('weather-line').textContent=weatherLine();$('countdown').textContent=moscowTime();
       $('start-day').textContent=state.started[startedKey()]?'ПОДГОТОВКА ГОТОВА':'ЗАВЕРШИТЬ ПОДГОТОВКУ';$('start-day').disabled=!!state.started[startedKey()];$('motya-status').textContent=state.helperUsed[helperKey('motya')]?'скан выполнен':gear().length+' вещей';$('grey-status').textContent=state.helperUsed[helperKey('grey')]?'домашка проверена':homeworkItems().filter(item=>!item.done).length+' заданий';$('streak-line').textContent=state.streak+' дня без забытых вещей';$('achievement-line').textContent=state.streak>=4?'«Рюкзак без потерь» · 4/5':'«Хозяин утра» · '+state.streak+'/3';$('next-point').textContent=nextPoint();
       renderInputs();renderTabs();renderPack();renderRoute();renderMissions();renderHomework();renderEditor();
     }
+    function weatherLine(){return weatherInfo.place+' · '+weatherInfo.summary+' · '+weatherInfo.details}
     function nextPoint(){const l=todayLessons()[0];return l?l[1]+' · '+l[0]:'Свободный день'}
     function renderInputs(){$('name').value=state.profile.name;$('nick').value=state.profile.nick;$('avatar').value=state.profile.avatar;$('theme').value=state.profile.theme}
-    function renderTabs(){$('tabs').innerHTML=days.map(day=>'<button class="tab '+(day.id===state.selectedDay?'active':'')+'" data-day="'+day.id+'">'+day.label+' '+formatDate(day.date).replace(' сентября','.09')+'</button>').join('')}
+    function renderTabs(){$('tabs').innerHTML=days.map(day=>'<button class="tab '+(day.id===state.selectedDay?'active':'')+'" data-day="'+day.id+'">'+day.label+' '+shortDate(day.date)+'</button>').join('')}
     function renderPack(){const items=gear();const done=state.packed[packedKey()]||[];$('pack-count').textContent=done.length+' / '+items.length;$('pack-list').innerHTML=items.map(item=>'<div class="pack-item"><button class="check '+(done.includes(item)?'done':'')+'" type="button" data-pack="'+item+'" aria-label="'+item+'">'+(done.includes(item)?'✓':'')+'</button>'+item+'</div>').join('');$('pack-progress').style.width=(done.length/items.length*100)+'%'}
-    function renderRoute(){$('route').innerHTML=todayLessons().map((l,i)=>'<div class="lesson '+(state.packed[packedKey()]&&i===0?'now ':'')+'"><i>'+(i+1)+'</i><b>'+l[1]+'</b>'+l[0]+' · каб. '+l[2]+'</div>').join('')}
+    function renderRoute(){$('route').innerHTML=todayLessons().map((l,i)=>'<div class="lesson '+(i===0?'now ':'')+'"><i>'+(i+1)+'</i><b>'+l[1]+'</b>'+l[0]+' · каб. '+l[2]+'</div>').join('')}
     function missionList(){const key=missionKey();const base=[['pack','Собрать рюкзак на завтра',80],['homework','Закрыть домашку',70],['plan','Проверить расписание и форму',25]];return base.map(([id,title,xp])=>({id,title,xp,done:(state.missions[key]||[]).includes(id)}))}
     function renderMissions(){$('missions').innerHTML=missionList().map(m=>'<div class="mission '+(m.done?'done':'')+'"><span>'+m.title+' <b>+'+m.xp+' XP</b></span><button class="ghost" data-mission="'+m.id+'" '+(m.done?'disabled':'')+'>'+(m.done?'ГОТОВО':'ВЫПОЛНИТЬ')+'</button></div>').join('')}
     function useHelper(name){const key=helperKey(name);if(state.helperUsed[key]){say(name==='motya'?'Мотя уже проверил рюкзак сегодня.':'Грей уже проверил домашку сегодня.');return}state.helperUsed[key]=true;if(name==='motya'){const missing=gear().filter(item=>!(state.packed[packedKey()]||[]).includes(item));award(15,missing.length?'Мотя нашёл недостающее: '+missing.slice(0,3).join(', ')+'. +15 XP':'Мотя подтверждает: рюкзак на завтра собран. +15 XP')}else{const open=homeworkItems().filter(item=>!item.done);award(15,open.length?'Грей нашёл незакрытое: '+open.slice(0,2).map(item=>item.subject).join(', ')+'. +15 XP':'Грей проверил домашку: всё закрыто. +15 XP')}}
@@ -144,6 +159,7 @@
     $('add-homework').addEventListener('click',()=>{const task=$('homework-task').value.trim();if(!task){say('Сначала напиши, что задали.');return}homeworkItems().push({id:Date.now(),subject:$('homework-subject').value||'Общее',task,done:false});$('homework-task').value='';state.homeworkRewarded[homeworkKey()]=false;save();render()});
     $('add-lesson').addEventListener('click',()=>{todayLessons().push(['14:00','Математика','312']);state.packed[packedKey()]=[];state.packRewarded[rewardKey()]=false;state.homework[homeworkKey()]=seedHomework();state.homeworkRewarded[homeworkKey()]=false;save();render()});
     render();
+    setInterval(()=>{$('countdown').textContent=moscowTime()},30000);
   </script>
 </body>
 </html>
