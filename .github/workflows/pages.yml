@@ -27,7 +27,7 @@ jobs:
         run: |
           mkdir -p _site/public/companions
           cp index.html _site/index.html
-          cp public/companions/*.webp _site/public/companions/
+          cp public/companions/*.svg _site/public/companions/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
