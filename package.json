@@ -1,0 +1,9 @@
+{
+  "name": "shtab-pyatiklassnika",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Переносимый прототип личного игрового центра управления школьным днём.",
+  "scripts": {
+    "build": "sh scripts/build-sites.sh"
+  }
+}
