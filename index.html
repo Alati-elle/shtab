@@ -82,7 +82,7 @@
       'Музыка':['Тетрадь по музыке'],
       'География':['Атлас','Контурная карта','Тетрадь']
     };
-    const defaults={profile:{name:'Макс',nick:'MAX',avatar:'MX',theme:'aurora'},xp:740,started:{},streak:4,packed:{},missions:{},selectedDay:'tue',schedule:{mon:[['08:30','Математика','312'],['09:25','Русский','207'],['10:20','История','315'],['11:15','Английский','214'],['12:10','Физкультура','Зал'],['13:05','Биология','104']],tue:[['08:30','Русский','207'],['09:25','Математика','312'],['10:20','ИЗО','118'],['11:15','География','301']],wed:[['08:30','Английский','214'],['09:25','Биология','104'],['10:20','Математика','312'],['11:15','Технология','006']],thu:[['08:30','История','315'],['09:25','Русский','207'],['10:20','Музыка','122'],['11:15','Физкультура','Зал']],fri:[['08:30','Математика','312'],['09:25','География','301'],['10:20','Английский','214'],['11:15','Биология','104']]}};
+    const defaults={profile:{name:'Макс',nick:'MAX',avatar:'MX',theme:'aurora'},xp:740,started:{},streak:4,packed:{},packRewarded:{},missions:{},selectedDay:'tue',schedule:{mon:[['08:30','Математика','312'],['09:25','Русский','207'],['10:20','История','315'],['11:15','Английский','214'],['12:10','Физкультура','Зал'],['13:05','Биология','104']],tue:[['08:30','Русский','207'],['09:25','Математика','312'],['10:20','ИЗО','118'],['11:15','География','301']],wed:[['08:30','Английский','214'],['09:25','Биология','104'],['10:20','Математика','312'],['11:15','Технология','006']],thu:[['08:30','История','315'],['09:25','Русский','207'],['10:20','Музыка','122'],['11:15','Физкультура','Зал']],fri:[['08:30','Математика','312'],['09:25','География','301'],['10:20','Английский','214'],['11:15','Биология','104']]}};
     const state=load();
     const $=id=>document.getElementById(id);
     const toast=$('toast');
@@ -98,6 +98,7 @@
     function level(){return Math.floor(state.xp/1000)+1}
     function packedKey(){return dayStorageKey()}
     function missionKey(){return dayStorageKey()}
+    function rewardKey(){return dayStorageKey()}
     function startedKey(){return dayStorageKey()}
     function award(amount,message){state.xp+=amount;save();render();say(message)}
     function render(){
@@ -115,11 +116,12 @@
     function missionList(){const key=missionKey();const base=[['pack','Собрать рюкзак на 100%',80],['route','Запомнить следующий кабинет',25],['homework','Записать одно важное задание',35]];return base.map(([id,title,xp])=>({id,title,xp,done:(state.missions[key]||[]).includes(id)}))}
     function renderMissions(){$('missions').innerHTML=missionList().map(m=>'<div class="mission '+(m.done?'done':'')+'"><span>'+m.title+' <b>+'+m.xp+' XP</b></span><button class="ghost" data-mission="'+m.id+'" '+(m.done?'disabled':'')+'>'+(m.done?'ГОТОВО':'ВЫПОЛНИТЬ')+'</button></div>').join('')}
     function renderEditor(){const options=Object.keys(subjects).map(s=>'<option>'+s+'</option>').join('');$('schedule-editor').innerHTML=todayLessons().map((l,i)=>'<div class="subject-row"><input data-edit="time" data-i="'+i+'" value="'+l[0]+'"><select data-edit="subject" data-i="'+i+'">'+options.replace('>'+l[1]+'<',' selected>'+l[1]+'<')+'</select><input data-edit="room" data-i="'+i+'" value="'+l[2]+'"><input data-edit="note" data-i="'+i+'" value="снаряжение авто" disabled><button class="icon-btn" data-remove="'+i+'" aria-label="Удалить урок">×</button></div>').join('')}
-    document.addEventListener('click',e=>{const t=e.target;if(t.dataset.day){state.selectedDay=t.dataset.day;save();render()}if(t.dataset.pack){const key=packedKey();state.packed[key]=state.packed[key]||[];const list=state.packed[key];const i=list.indexOf(t.dataset.pack);i<0?list.push(t.dataset.pack):list.splice(i,1);if(list.length===gear().length)award(80,'Комплект снаряжения собран на 100%. +80 XP');else{save();render()}}if(t.dataset.mission){const m=missionList().find(x=>x.id===t.dataset.mission);state.missions[missionKey()]=state.missions[missionKey()]||[];state.missions[missionKey()].push(m.id);award(m.xp,'Миссия выполнена: '+m.title+'. +'+m.xp+' XP')}if(t.dataset.remove){todayLessons().splice(Number(t.dataset.remove),1);state.packed[packedKey()]=[];save();render()}});
-    document.addEventListener('input',e=>{const t=e.target;if(['name','nick','avatar','theme'].includes(t.id)){state.profile[t.id]=t.value;save();render()}if(t.dataset.edit){todayLessons()[Number(t.dataset.i)][{time:0,subject:1,room:2}[t.dataset.edit]]=t.value;state.packed[packedKey()]=[];save();render()}});
+    document.addEventListener('click',e=>{const t=e.target;if(t.dataset.day){state.selectedDay=t.dataset.day;save();render()}if(t.dataset.pack){const key=packedKey();state.packed[key]=state.packed[key]||[];const list=state.packed[key];const i=list.indexOf(t.dataset.pack);i<0?list.push(t.dataset.pack):list.splice(i,1);if(list.length===gear().length&&!state.packRewarded[rewardKey()]){state.packRewarded[rewardKey()]=true;award(80,'Комплект снаряжения собран на 100%. +80 XP')}else{save();render()}}if(t.dataset.mission){const m=missionList().find(x=>x.id===t.dataset.mission);state.missions[missionKey()]=state.missions[missionKey()]||[];state.missions[missionKey()].push(m.id);award(m.xp,'Миссия выполнена: '+m.title+'. +'+m.xp+' XP')}if(t.dataset.remove){todayLessons().splice(Number(t.dataset.remove),1);state.packed[packedKey()]=[];state.packRewarded[rewardKey()]=false;save();render()}});
+    document.addEventListener('input',e=>{const t=e.target;if(['name','nick','avatar','theme'].includes(t.id)){state.profile[t.id]=t.value;save();render()}});
+    document.addEventListener('change',e=>{const t=e.target;if(t.dataset.edit){todayLessons()[Number(t.dataset.i)][{time:0,subject:1,room:2}[t.dataset.edit]]=t.value;state.packed[packedKey()]=[];state.packRewarded[rewardKey()]=false;save();render()}});
     $('start-day').addEventListener('click',()=>{state.started[startedKey()]=true;award(30,'День запущен. Следующая точка под контролем. +30 XP')});
     $('evening-mode').addEventListener('click',()=>say('Вечерний режим: рюкзак на завтра можно собрать заранее.'));
-    $('add-lesson').addEventListener('click',()=>{todayLessons().push(['14:00','Математика','312']);state.packed[packedKey()]=[];save();render()});
+    $('add-lesson').addEventListener('click',()=>{todayLessons().push(['14:00','Математика','312']);state.packed[packedKey()]=[];state.packRewarded[rewardKey()]=false;save();render()});
     render();
   </script>
 </body>
