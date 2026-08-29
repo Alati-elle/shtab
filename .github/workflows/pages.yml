@@ -4,8 +4,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '*/30 * * * *'
 
 permissions:
   contents: read
@@ -23,14 +21,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
-      - name: Mirror ChatGPT Sites build
+      - name: Prepare static site
         run: |
           set -euo pipefail
           mkdir -p _site/public/companions
-          curl -fsSL https://shtab-pyatiklassnika.molodenskaya.chatgpt.site/ -o _site/index.html
-          curl -fsSL https://shtab-pyatiklassnika.molodenskaya.chatgpt.site/public/companions/motya.svg -o _site/public/companions/motya.svg
-          curl -fsSL https://shtab-pyatiklassnika.molodenskaya.chatgpt.site/public/companions/grey.svg -o _site/public/companions/grey.svg
+          cp index.html _site/index.html
+          cp public/companions/*.svg _site/public/companions/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
