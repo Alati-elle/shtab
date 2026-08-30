@@ -20,7 +20,8 @@ if public_dir.exists():
     for path in public_dir.rglob("*"):
         if path.is_file():
             route = "/public/" + path.relative_to(public_dir).as_posix()
-            content_type = "image/png" if path.suffix.lower() == ".png" else "application/octet-stream"
+            suffix = path.suffix.lower()
+            content_type = "image/png" if suffix == ".png" else "image/svg+xml" if suffix == ".svg" else "application/octet-stream"
             asset_routes[route] = {"content_type": content_type, "base64": base64.b64encode(path.read_bytes()).decode("ascii")}
 
 worker = f"""const html = {json.dumps(html, ensure_ascii=False)};

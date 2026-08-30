@@ -20,7 +20,7 @@ function walk(dir) {
       const route = "/public/" + relative(publicDir, path).split(sep).join("/");
       const suffix = extname(path).toLowerCase();
       assets[route] = {
-        content_type: suffix === ".png" ? "image/png" : "application/octet-stream",
+        content_type: suffix === ".png" ? "image/png" : suffix === ".svg" ? "image/svg+xml" : "application/octet-stream",
         base64: readFileSync(path).toString("base64")
       };
     }
