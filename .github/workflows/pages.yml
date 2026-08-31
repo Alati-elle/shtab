@@ -27,9 +27,9 @@ jobs:
           enablement: true
       - name: Prepare static site
         run: |
-          mkdir -p _site/public/companions
+          mkdir -p _site
           cp index.html _site/index.html
-          cp public/companions/*.svg _site/public/companions/
+          cp -R public _site/public
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
