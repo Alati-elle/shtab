@@ -3,13 +3,18 @@ import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const html = readFileSync(resolve(root, "index.html"), "utf8");
 const distDir = resolve(root, "dist");
 const serverDir = resolve(distDir, "server");
 const publicDir = resolve(root, "public");
 
 mkdirSync(serverDir, { recursive: true });
-writeFileSync(resolve(distDir, "index.html"), html, "utf8");
+
+const pages = {};
+for (const entry of ["index.html", "parent.html"]) {
+  const html = readFileSync(resolve(root, entry), "utf8");
+  writeFileSync(resolve(distDir, entry), html, "utf8");
+  pages["/" + entry] = html;
+}
 
 const assets = {};
 function walk(dir) {
@@ -32,7 +37,7 @@ try {
   walk(publicDir);
 } catch {}
 
-const worker = `const html = ${JSON.stringify(html)};
+const worker = `const pages = ${JSON.stringify(pages)};
 const assets = ${JSON.stringify(assets)};
 
 function decodeBase64(value) {
@@ -46,8 +51,9 @@ export default {
   async fetch(request) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/" || url.pathname === "/index.html") {
-      return new Response(html, {
+    const page = url.pathname === "/" ? pages["/index.html"] : pages[url.pathname];
+    if (page) {
+      return new Response(page, {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "public, max-age=300"
