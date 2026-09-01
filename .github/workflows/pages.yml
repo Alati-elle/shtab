@@ -29,6 +29,7 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/index.html
+          cp parent.html _site/parent.html
           cp -R public _site/public
       - uses: actions/upload-pages-artifact@v3
         with:
